@@ -9,12 +9,9 @@ format:
     code-tools: true
   pdf:
     toc: true
-    # toc-title: Contents
     toc-depth: 4
     number-sections: true
     colorlinks: true
-    # number-depth: 4
-    # highlight-style: github
 author:
 - name: "Benjamin D. Best"
   orcid: 0000-0002-2686-0784
@@ -26,17 +23,21 @@ author:
       state: CA
       postal-code: 93101
 date: now
-date-format: "YYYY-MM-DD" #  HH:mm
+date-format: "YYYY-MM-DD"
 bibliography: boem-esi.bib
 editor_options: 
   chunk_output_type: console
 ---
 
 ```{r}
-#| include: false
+#| label: setup
+#| echo: !expr knitr::is_html_output()
 
 librarian::shelf(
-  DBI, fs, glue, htmlwidgets, knitr, offshorewindhabitat/offhabr, webshot2)
+  dplyr, fs, glue, gt, htmlwidgets, knitr, offshorewindhabitat/offhabr, readr, webshot2,
+  cran_repo = "https://cran.r-project.org")
+
+options(readr.show_col_types = F)
 
 # helper functions ----
 
@@ -65,20 +66,51 @@ render_widget <- function(w, f){
 }
 
 # doc defaults ----
-opts_chunk$set(echo = F)
+opts_chunk$set(
+  echo = is_html_output())
 
 # database connection to offhabr ----
 con <- oh_con()
 
 # variables ----
 url_idx <- "https://ecoquants.com/boem-esi/index.html"
+
+
+# load data ----
+
+# zone spatial features
+z_csv <- "https://raw.githubusercontent.com/offshorewindhabitat/scripts/main/data/zonal_zones.csv"
+f_z <- oh_zones_s1k |> 
+  filter(zone_version == 1) |> 
+  left_join(
+    read_csv(z_csv) |> 
+      mutate(across(where(is.numeric), \(x) round(x, 1))), 
+    by = c("zone_id" = "zone_id_v1")) |> 
+  mutate(
+    area_km2 = round(area_km2, 1))
 ```
 
 ## Abstract
 
-EcoQuants proposes to develop offshore Environmental Sensitivity Indices  (ESIs) by producing fine resolution species distribution maps and a framework for matching species to sensitivities specific to oil, gas or wind energy human activities.
+EcoQuants proposes to develop offshore Environmental Sensitivity Indices (ESIs) by producing fine resolution species distribution maps and a framework for matching species to sensitivities specific to oil, gas or wind energy human activities.
 
-## Methods
+## Framework for Environmental Sensitivity Indices
+
+### Atlas of Species and Habitats
+
+Existing methods for ESI calculation [@niedoroda2014method] only produced for very broad areas.
+
+Downscale [AquaMaps.org](https://aquamaps.org) species distributions [@kaschnerAquaMapsPredictedRange2023; @readyPredictingDistributionsMarine2010] from 0.5 decimal degrees to 15 arc seconds (\~55 km to \~0.5 km at the equator), using the R package [`aquamapsdata`](https://raquamaps.github.io/aquamapsdata/index.html) and the the General Bathymetric Chart of the Oceans [GEBCO](https://www.gebco.net/).
+
+Later we'll iterate over species and expand to global, which will require large raster handling techniques using Cloud-Optimized GeoTIFFS (COGs; see [cogeo.org](https://www.cogeo.org)).
+
+All code and files (except the large global GEBCO grid) are found in this repository:
+
+-   [github.com/marinebon/aquamaps-downscaled](https://github.com/marinebon/aquamaps-downscaled)
+
+-   [env_bluewhale](https://code.earthengine.google.com/79a99ef413570e9ddbff659a719154ba) The blue whale ([*Balaenoptera musculus*](https://aquamaps.org/preMap2.php?cache=1&SpecID=ITS-Mam-180528)) and Southern California. (@fig-aquamaps_blue-whale_env)
+
+![Plots of environmental suitability parameters from `aquamapsdata` for an example species of blue whale (*Balaenoptera musculus*).](figures/aquamaps_blue-whale_env.png){#fig-aquamaps_blue-whale_env}
 
 See @fig-pixel_sp.
 
@@ -88,13 +120,12 @@ See @fig-pixel_sp.
 cap_pixel_sp <- paste(
   ifelse(
     is_html_output(),
-    "Interactive map of species richness", 
+    "Interactive map of species richness by pixel", 
     glue(
       "Screenshot of 
-      [interactive map of species richness]({url_idx}#fig-pixel_sp)")),
-  "across the study area.")
+      [interactive map of species richness by pixel]({url_idx}#fig-pixel_sp)")),
+  "across federal waters for the contiguous United States.")
 ```
-
 
 ```{r}
 #| label: fig-pixel_sp
@@ -104,7 +135,296 @@ oh_map_cog_lyr("sp_web", "# Species", con=con) |>
   render_widget("pixel_sp")
 ```
 
+Summarize by zone (@fig-zone_sp).
+
+```{r}
+#| label: cap_zone_sp
+
+cap_zone_sp <- paste(
+  ifelse(
+    is_html_output(),
+    "Interactive map of species richness by zone", 
+    glue(
+      "Screenshot of 
+      [interactive map of species richness by zone]({url_idx}#fig-pixel_sp)")),
+  "across federal waters for the contiguous United States.")
+```
+
+```{r}
+#| label: fig-zone_sp
+#| fig-cap: !expr cap_zone_sp
+
+oh_map() |> 
+  oh_add_ply(
+    ply     = f_z,
+    fld_val = "sp_web",
+    fld_id  = zone_name,
+    str_val = "# Species",
+    str_id  = "Zone") |> 
+  render_widget("zone_sp")
+```
+
+See @fig-pixel_er.
+
+```{r}
+#| label: cap_pixel_er
+
+cap_pixel_er <- paste(
+  ifelse(
+    is_html_output(),
+    "Interactive map of extinction risk", 
+    glue(
+      "Screenshot of 
+      [interactive map of extinction risk]({url_idx}#fig-pixel_er)")),
+  "across federal waters for the contiguous United States.")
+```
+
+```{r}
+#| label: fig-pixel_er
+#| fig-cap: !expr cap_pixel_er
+
+oh_map_cog_lyr("er_web", "Extinction Risk", con=con) |> 
+  render_widget("pixel_er")
+```
+
+See @tbl-datasets.
+
+```{r}
+#| label: tbl-datasets
+#| tbl-cap: Summary of datasets.
+
+d_ds <- tbl(con, "datasets") |> 
+  filter(
+    active,
+    ds_key != "oh") |> 
+  collect()
+
+d_lyrs_ds <- tbl(con, "lyrs") |>
+  filter(
+    !is.na(aphia_id),
+    is_ds_prime,
+    ds_key != "oh") |> 
+  group_by(ds_key) |> 
+  summarize(n_lyr = n()) |> 
+  left_join(
+    tbl(con, "lyr_rgn_ds") |>
+      left_join(
+        tbl(con, "datasets") |> 
+          select(ds_key, ds_id),
+        by = "ds_id") |> 
+      group_by(ds_key) |> 
+      summarize(n_rgn = n()),
+    by = "ds_key") |> 
+  arrange(ds_key) |> 
+  collect() |> 
+  # replace_na(list(n_rgn = 0)) |> 
+  mutate(
+    n_lyr_rgn = purrr::map2_int(n_lyr, n_rgn, sum, na.rm=T))
+
+d_ds <- d_ds |> 
+  left_join(
+    d_lyrs_ds,
+    by = "ds_key")
+
+d_ds <- d_ds |> 
+  arrange(desc(n_lyr_rgn), type, name_short) |> 
+  select(
+    # Key      = ds_key,
+    `# Species` = n_lyr_rgn,
+    Name        = name_short,
+    Type        = type,
+    Taxa        = taxa_classes,
+    Year     = year,
+    Pacific  = rgn_pacific,
+    Atlantic = rgn_atlantic,
+    GoMex    = rgn_gomex) |> 
+    gt() |> 
+    tab_spanner(
+      label   = "Regions",
+      columns = c(Pacific, Atlantic, GoMex)) |> 
+  opt_row_striping(row_striping = T) |> 
+  text_transform(
+    locations = cells_body(
+      columns = c(Pacific, Atlantic, GoMex)),
+    fn = function(x)
+      ifelse(x, "✓", "")) |> # heavy(✔) vs light(✓)
+  sub_missing(
+    columns      = c(Taxa, `# Species`),
+    missing_text = "") |> 
+  fmt_number(
+    columns  = `# Species`,
+    decimals = 0)
+
+if (is_html_output())
+  d_ds
+
+if (!is_html_output())
+  d_ds |> 
+    cols_hide(
+      columns = c(
+        Taxa,
+        Type,
+        # Year,
+        Pacific,
+        Atlantic,
+        GoMex))
+```
+
+Match and use the taxonomic unique identifier `aphia_id` used by the World Registry of Marine Species at [MarineSpecies.org](https://MarineSpecies.org).
+
+### Matrices of Sensitivity to Human Activities
+
+@kelseyCollisionDisplacementVulnerability2018:
+
+* We present a study of offshore wind energy infrastructure impacts on marine birds in the US Pacific Outer Continental Shelf.
+* Using species-specific metrics, we calculated Population, Collision, and Displacement Vulnerability for 81 species.
+* Species with highest Population Vulnerability included threatened species and year-round residents with small population sizes.
+* Jaegers/skuas, pelicans, terns and gulls have high collision vulnerability.
+* Loons, grebes, sea ducks, and alcids have high displacement vulnerability.
+
+
+@michaelSeabirdVulnerabilityOil2022 on seabird vulnerability to oil.
+
+Also ships and whales. Rice's whale [ecoquants.com/ricei/](https://ecoquants.com/ricei). [@bestSpatialAnalysisShip2023]
+
+Tradeoffs overview (@fig-tradeoffs-overview).
+
+![Overview of methods for bringing together wind profitability, seabird sensitivity over space, and cetacean sensitivity over space and time. Source: @bestMinimizingWildlifeImpacts2019.](figures/BestHalpin2019_fig2.png){#fig-tradeoffs-overview}
+
+OHI value sets (@fig-HalpernEtal2012_fig4).
+
+![Value sets are illustrative rather than prescriptive; labels for the value sets are approximations and should not be interpreted literally. Source: @halpernIndexAssessHealth2012](figures/HalpernEtal2012_fig4.jpg){#fig-HalpernEtal2012_fig4}
+
+Human use atlases [@dlorioPacificRegionalOcean2015]
+
+Mitigation strategies [@industrialeconomicsinc.IdentificationOuterContinental2012]
+
+## Interactive Applications
+
+Propose to borrow from the suite of applications...
+
+### Ocean Health Index
+
+The Ocean Health Index uses a framework of 10 broad goals with status, pressures, trend and status. The flower plot visualizes the score of each goal as its extent, and the weighted value to the overall score as the petal width. (@fig-app_OHI)
+
+![Screenshot of [Ocean Health Index application](https://ecoquants.shinyapps.io/ohi-global) ([source code](https://github.com/bbest/ohi-global/tree/app)) showing scores on hover with flower plot from equally weighted goals (See @fig-HalpernEtal2012_fig4).](figures/app_OHI.png){#fig-app_OHI}
+
+### NREL Uses
+
+Assign weights to human uses, species distributions and habitats. Sum them up to determine most sensitive areas. (@fig-app_NREL-uses)
+
+![Screenshot of [NREL Uses application](https://ecoquants.shinyapps.io/nrel-uses) ([source code](https://github.com/ecoquants/nrel-uses)) showing sliders to apply constraints.](figures/app_NREL-uses.png){#fig-app_NREL-uses}
+
+### Tradeoffs
+
+A tradeoff plot can visualizes two objectives at once. Selecting win-win areas in the plot, such as high wind and low seabird sensitivity, highlights those places on the map. (@fig-app_siting)
+
+![Screenshot of [Tradeoffs application](https://shiny.ecoquants.com/siting) ([source code](https://github.com/bbest/siting)) showing the ability to lasso pixels in tradeoff space to show up on the map and clicking on a given pixel to identify month of year to minimally impact marine mammals.](figures/app_siting.png){#fig-app_siting}
+
+Novel marine energy application [@barrNovelMarineEnergy2022a].
+
+### MarineEnergy.app
+
+Select tags (technology, stressor, and/or receptor), draw location and generate a report (@fig-app_MarineEnergy).
+
+-   Use OAuth2 to login via Google, Microsoft, Facebook, etc.
+
+-   Mitigation strategies
+
+-   Generate a report using API.
+
+-   
+
+![Screenshot of [Marine Energy application](https://marineenergy.app) ([source code](https://github.com/marineenergy/apps/tree/master/report-v2)) Figure 2. The reporting application has an expandable sidebar for inputting a set of Tags as Interactions and a Location as a polygon. The top menu allows the user to navigate across content types. Here the Projects display a map and timeline of marine energy projects. Once the user submits the Add button on the Tags, the Projects map and timeline will reduce to just the Wave technology. Each of the content types filters on different tags, which are color coded. The Reports section enables users to save their reports (after logging in with a Google account) and share the online link with others. Source: @barrNovelMarineEnergy2022a](figures/app_MarineEnergy.jpg){#fig-app_MarineEnergy}
+
+Draw custom areas and generate outputs (@fig-app_CalCOFI-oceano).
+
+![Screenshot of [CalCOFI oceanographic application](https://shiny.calcofi.io/oceano) ([source code](https://github.com/CalCOFI/apps/tree/main/oceano)) showing ability to generate contours on the fly as well as select existing or custom areas of interest over which to summarize in space, time or depth.](figures/app_CalCOFI-oceano.png){#fig-app_CalCOFI-oceano}
+
+## Infographics
+
+Visualize the ecosystem with icons clickable to popup windows with data and details.
+
+Infographics [@spectorWebenizingConditionReports2021] (@fig-info_Cstories) have been used on [SanctuaryWatch](https://sanctuarywatch.ioos.us) and the NOAA Integrated Ecosystem Assesment (e.g., for the [California Ecosystem Status Report](https://www.integratedecosystemassessment.noaa.gov/regions/california-current/highlights-2022-23-california-ecosystem-status-report)).
+
+-   Github real-time.
+-   SanctSound
+
+![Screenshot of [interactive infographic](https://cstories.integral-corp.com/beta/infographics/whales.html) informing on whale interactions with offshore wind energy, built using the [infographiq](https://marinebon.github.io/infographiq/) JavaScript library. Clicking on elements in the scene or contents on the right opens a window with multimedia content describing in detail.](figures/info_CStories-whales.png){#fig-info_Cstories}
+
+## Software Components
+
+### Folders & Repositories
+
+-   folders on a share drive
+    -   data
+    -   documents
+-   bibliography
+    -   Zotero
+-   Github repositories
+    -   1 GB limit
+    -   Github Pages for sharing like this proposal
+
+### Server Software
+
+-   Docker
+
+-   Database
+
+    -   Postgres + PostGIS
+
+### Application Programming Interfaces
+
+-   Custom
+
+    -   R Plumber
+
+-   PostgREST
+
+-   Examples
+
+    -   [api.marineenergy.app](http://api.marineenergy.app)
+
+    -   [api.calcofi.io](https://api.calcofi.io)
+
+### R Library
+
+-   R library [`offhabr`](https://offshorewindhabitat.info/offhabr/reference/index.html)
+
+-   R library [`calcofi4r`](https://calcofi.io/calcofi4r/) with vignette.
+
+-   Overall catalog of open-source products with links to source code repositories and live product at [CalCOFI.io](https://calcofi.io).
+
+-   Categories
+
+    -   Read
+
+    -   Analyze
+
+    -   Visualize
+
+## Reproducible Results
+
+This proposal was produced using the principles of reproducible research [@lowndesOurPathBetter2017] with the R programming language [@rcoreteamLanguageEnvironmentStatistical2023].
+
+All source code for this proposal can be found at [github.com/ecoquants/boem-esi](https://github.com/ecoquants/boem-esi).
+
+Statistical analysis will be performed using the libraries and methods of the [`tidyverse`](https://www.tidyverse.org/) [@wickhamWelcomeTidyverse2019] and spatial features [`sf`](https://r-spatial.github.io/sf/index.html) [@pebesmaJournalSimpleFeatures2018] output to a [Quarto](https://quarto.org/) document [@allaireQuartoInterfaceQuarto2022]. All source code is available in the Github repository [github.com/ecoquants/ricei](https://github.com/ecoquants/ricei). The interactive version of this report is available at [ecoquants.com/ricei](https://ecoquants.com/ricei).
+
+## Project Management
+
+-   Github Project
+-   Personell: Ben
+-   Project Manager
+
+### Draft Milestones
+
+-   spin up server environment
+    -   docker: rstu
+-   
+
+## References
+
 ```{r}
 DBI::dbDisconnect(con, shutdown=TRUE)
 ```
-
