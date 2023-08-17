@@ -1,0 +1,110 @@
+---
+title: "EcoQuants Proposal for Offshore Environmental Sensitivity Indices"
+format:
+  html:
+    toc: true
+    number-sections: true
+    number-depth: 3
+    code-fold: true
+    code-tools: true
+  pdf:
+    toc: true
+    # toc-title: Contents
+    toc-depth: 4
+    number-sections: true
+    colorlinks: true
+    # number-depth: 4
+    # highlight-style: github
+author:
+- name: "Benjamin D. Best"
+  orcid: 0000-0002-2686-0784
+  email: ben@ecoquants.com
+  affiliations:
+    - name: EcoQuants LLC
+      address: 211 W. Gutierrez St., Unit 12
+      city: Santa Barbara
+      state: CA
+      postal-code: 93101
+date: now
+date-format: "YYYY-MM-DD" #  HH:mm
+bibliography: boem-esi.bib
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+#| include: false
+
+librarian::shelf(
+  DBI, fs, glue, htmlwidgets, knitr, offshorewindhabitat/offhabr, webshot2)
+
+# helper functions ----
+
+render_widget <- function(w, f){
+  p <- glue("figures/{f}.png")
+  
+  if (!file.exists(p)){
+    # interim paths
+    h <- glue("figures/{f}.html")
+    d <- glue("figures/{f}_files")
+    
+    # capture png
+    saveWidget(w, h)
+    webshot(h, p)
+    
+    # cleanup
+    dir_delete(d)
+    file_delete(h)
+  }
+  
+  if (is_html_output()){
+    return(w)
+  } else {
+    return(include_graphics(p))
+  }
+}
+
+# doc defaults ----
+opts_chunk$set(echo = F)
+
+# database connection to offhabr ----
+con <- oh_con()
+
+# variables ----
+url_idx <- "https://ecoquants.com/boem-esi/index.html"
+```
+
+## Abstract
+
+EcoQuants proposes to develop offshore Environmental Sensitivity Indices  (ESIs) by producing fine resolution species distribution maps and a framework for matching species to sensitivities specific to oil, gas or wind energy human activities.
+
+## Methods
+
+See @fig-pixel_sp.
+
+```{r}
+#| label: cap_pixel_sp
+
+cap_pixel_sp <- paste(
+  ifelse(
+    is_html_output(),
+    "Interactive map of species richness", 
+    glue(
+      "Screenshot of 
+      [interactive map of species richness]({url_idx}#fig-pixel_sp)")),
+  "across the study area.")
+```
+
+
+```{r}
+#| label: fig-pixel_sp
+#| fig-cap: !expr cap_pixel_sp
+
+oh_map_cog_lyr("sp_web", "# Species", con=con) |> 
+  render_widget("pixel_sp")
+```
+
+```{r}
+DBI::dbDisconnect(con, shutdown=TRUE)
+```
+
