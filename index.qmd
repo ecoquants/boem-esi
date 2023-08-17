@@ -1,16 +1,27 @@
 ---
-title: "EcoQuants Proposal for Offshore Environmental Sensitivity Indices"
+title: "Technical Quotation"
+subtitle: "EcoQuants Proposal for Offshore Environmental Sensitivity Indices"
 format:
   html:
     toc: true
     number-sections: true
-    number-depth: 3
+    shift-heading-level-by: -1
+    # number-depth: 3
     code-fold: true
     code-tools: true
+  docx:
+    toc: true
+    # toc-title: Contents
+    number-sections: true
+    shift-heading-level-by: -1
+    # toc-depth: 4
+    # number-depth: 4
+    highlight-style: github
   pdf:
     toc: true
     toc-depth: 4
     number-sections: true
+    shift-heading-level-by: -1
     colorlinks: true
 author:
 - name: "Benjamin D. Best"
@@ -67,7 +78,9 @@ render_widget <- function(w, f){
 
 # doc defaults ----
 opts_chunk$set(
-  echo = is_html_output())
+  echo    = is_html_output(),
+  warning = F,
+  message = F)
 
 # database connection to offhabr ----
 con <- oh_con()
@@ -88,110 +101,32 @@ f_z <- oh_zones_s1k |>
     by = c("zone_id" = "zone_id_v1")) |> 
   mutate(
     area_km2 = round(area_km2, 1))
+
+stack_web_tif <- "/Users/bbest/Library/CloudStorage/GoogleDrive-ben@ecoquants.com/.shortcut-targets-by-id/1sdT2ZZLmkgP0Zl8f1Yg0vOsVJR3Pms3Z/offhab/data/derived/stack_web.tif"
+stopifnot(file.exists(stack_web_tif))
 ```
 
 ## Abstract
 
-EcoQuants proposes to develop offshore Environmental Sensitivity Indices (ESIs) by producing fine resolution species distribution maps and a framework for matching species to sensitivities specific to oil, gas or wind energy human activities.
+EcoQuants LLC proposes to develop offshore Environmental Sensitivity Indices (ESIs) by producing fine resolution species distribution maps and a framework for applying weights to species and habitats reflecting sensitivity to specific stressors from oil & gas or wind energy.
 
 ## Framework for Environmental Sensitivity Indices
 
+As the solicitation points out, existing methods for calculating environmental sensitivity indices (ESIs) [@niedoroda2014method] only produced results for very broad areas and mostly based on shoreline data. With distance from shore, observational data becomes increasingly sparse. And observation data is generally only applicable to the time and place of occurrence, unless a relationship is modeled between the environment and the observations. In which case, species distribution models can be applied across the seascape [@elithConservationPrioritisationUsing2009]. Ideally, these are resolved in terms of climatic seasons and projected into climate future scenarios.
+
+Once species and habitats are mapped out, weights can be applied based on sensitivity to specific stressors from industry activities and these layers can be summed and scored.
+
+Excellent data portals exist, but do not currently fully meet the solicited need of mapped weighted approach [@daviesSpatialPlanningSustainable2014]. [MarineCadastre.gov](https://MarineCadastre.gov) has authoritative datasets, but is still lacking in species, and does not integrate these data meaningfully into indicators for decision-making. [OceanReports](https://marinecadastre.gov/oceanreports) does a beautiful job gleaning basic indicators across many of the datasets but does not summarize species densities in detail, nor provide a system for applying weights or an API for programmatically accessing information.
+
 ### Atlas of Species and Habitats
 
-Existing methods for ESI calculation [@niedoroda2014method] only produced for very broad areas.
+As part of a recent contract with Resources Legacy Foundation, EcoQuants LLC developed an offshore habitat assessment for wind energy in the contiguous United States [@bestOffshoreHabitatAssessmentinreview]. BOEM\'s Outer Continental Shelf (OCS) [Planning Areas](https://www.arcgis.com/home/webmap/viewer.html?url=https://gis.boem.gov/arcgis/rest/services/BOEM_BSEE/MMC_Layers/MapServer/20&extent=-100,40&level=4) were clipped to the US Exclusive Economic Zone and reported as "zones". Although the website and report are currently password protected while review is underway, relevant sample outputs are worth sharing (and interactive maps viewable for the online version of this report at [ecoquants.com/boem-esi](https://ecoquants.com/boem-esi)).
 
-Downscale [AquaMaps.org](https://aquamaps.org) species distributions [@kaschnerAquaMapsPredictedRange2023; @readyPredictingDistributionsMarine2010] from 0.5 decimal degrees to 15 arc seconds (\~55 km to \~0.5 km at the equator), using the R package [`aquamapsdata`](https://raquamaps.github.io/aquamapsdata/index.html) and the the General Bathymetric Chart of the Oceans [GEBCO](https://www.gebco.net/).
-
-Later we'll iterate over species and expand to global, which will require large raster handling techniques using Cloud-Optimized GeoTIFFS (COGs; see [cogeo.org](https://www.cogeo.org)).
-
-All code and files (except the large global GEBCO grid) are found in this repository:
-
--   [github.com/marinebon/aquamaps-downscaled](https://github.com/marinebon/aquamaps-downscaled)
-
--   [env_bluewhale](https://code.earthengine.google.com/79a99ef413570e9ddbff659a719154ba) The blue whale ([*Balaenoptera musculus*](https://aquamaps.org/preMap2.php?cache=1&SpecID=ITS-Mam-180528)) and Southern California. (@fig-aquamaps_blue-whale_env)
-
-![Plots of environmental suitability parameters from `aquamapsdata` for an example species of blue whale (*Balaenoptera musculus*).](figures/aquamaps_blue-whale_env.png){#fig-aquamaps_blue-whale_env}
-
-See @fig-pixel_sp.
-
-```{r}
-#| label: cap_pixel_sp
-
-cap_pixel_sp <- paste(
-  ifelse(
-    is_html_output(),
-    "Interactive map of species richness by pixel", 
-    glue(
-      "Screenshot of 
-      [interactive map of species richness by pixel]({url_idx}#fig-pixel_sp)")),
-  "across federal waters for the contiguous United States.")
-```
-
-```{r}
-#| label: fig-pixel_sp
-#| fig-cap: !expr cap_pixel_sp
-
-oh_map_cog_lyr("sp_web", "# Species", con=con) |> 
-  render_widget("pixel_sp")
-```
-
-Summarize by zone (@fig-zone_sp).
-
-```{r}
-#| label: cap_zone_sp
-
-cap_zone_sp <- paste(
-  ifelse(
-    is_html_output(),
-    "Interactive map of species richness by zone", 
-    glue(
-      "Screenshot of 
-      [interactive map of species richness by zone]({url_idx}#fig-pixel_sp)")),
-  "across federal waters for the contiguous United States.")
-```
-
-```{r}
-#| label: fig-zone_sp
-#| fig-cap: !expr cap_zone_sp
-
-oh_map() |> 
-  oh_add_ply(
-    ply     = f_z,
-    fld_val = "sp_web",
-    fld_id  = zone_name,
-    str_val = "# Species",
-    str_id  = "Zone") |> 
-  render_widget("zone_sp")
-```
-
-See @fig-pixel_er.
-
-```{r}
-#| label: cap_pixel_er
-
-cap_pixel_er <- paste(
-  ifelse(
-    is_html_output(),
-    "Interactive map of extinction risk", 
-    glue(
-      "Screenshot of 
-      [interactive map of extinction risk]({url_idx}#fig-pixel_er)")),
-  "across federal waters for the contiguous United States.")
-```
-
-```{r}
-#| label: fig-pixel_er
-#| fig-cap: !expr cap_pixel_er
-
-oh_map_cog_lyr("er_web", "Extinction Risk", con=con) |> 
-  render_widget("pixel_er")
-```
-
-See @tbl-datasets.
+Species and habitat distributions for the US vary in the spatial resolution, spatial footprint and response. The highest quality species distribution models (SDMs) predict **density** (e.g., numbers of animals per unit area). This is especially useful for complying with the Marine Mammal Protection Act by reporting Potential Biological Removal. Other models predict only the **probability** (or likelihood of encounter), or even only a **range** defined by an expert. Some physiographic habitats, such as seamounts or hydrothermal vents, might only have point **occurrences** to which ecologically meaningful distances are buffered. ([@tbl-datasets])
 
 ```{r}
 #| label: tbl-datasets
-#| tbl-cap: Summary of datasets.
+#| tbl-cap: Summary of datasets used for species and habitats (Best _in review_).
 
 d_ds <- tbl(con, "datasets") |> 
   filter(
@@ -270,50 +205,164 @@ if (!is_html_output())
         GoMex))
 ```
 
-Match and use the taxonomic unique identifier `aphia_id` used by the World Registry of Marine Species at [MarineSpecies.org](https://MarineSpecies.org).
+Where the same species overlap between different datasets [@tbl-datasets] can be further combined by preferring the response (density \> probability \> range) and year (newer \> older) as a mosaic by region (i.e., Pacific, Atlantic and Gulf of Mexico). Presence of species can then be added to produce species richness ([@fig-pixel_sp]).
 
-### Matrices of Sensitivity to Human Activities
+```{r}
+#| label: cap_pixel_sp
 
-@kelseyCollisionDisplacementVulnerability2018:
+cap_pixel_sp <- paste(
+  ifelse(
+    is_html_output(),
+    "Interactive map of species richness by pixel", 
+    glue(
+      "Screenshot of 
+      [interactive map of species richness by pixel]({url_idx}#fig-pixel_sp)")),
+  "across federal waters for the contiguous United States. (Best _in review_)")
+```
 
-* We present a study of offshore wind energy infrastructure impacts on marine birds in the US Pacific Outer Continental Shelf.
-* Using species-specific metrics, we calculated Population, Collision, and Displacement Vulnerability for 81 species.
-* Species with highest Population Vulnerability included threatened species and year-round residents with small population sizes.
-* Jaegers/skuas, pelicans, terns and gulls have high collision vulnerability.
-* Loons, grebes, sea ducks, and alcids have high displacement vulnerability.
+```{r}
+#| label: fig-pixel_sp
+#| fig-cap: !expr cap_pixel_sp
 
+oh_map_cog_lyr("sp_web", "# Species", con=con) |> 
+  render_widget("pixel_sp")
+```
 
-@michaelSeabirdVulnerabilityOil2022 on seabird vulnerability to oil.
+Beyond counting species, breaking them up into taxonomic groups and running optimal siting algorithms is something we have experience doing for the high seas [@visalliDatadrivenApproachHighlighting2020]. For the high seas analysis we additionally used distributions predicted under future climate change scenarios. EcoQuants also worked on developing the original Duke Atlantic Marine Mammal Densities [@robertsHabitatbasedCetaceanDensity2016].
 
-Also ships and whales. Rice's whale [ecoquants.com/ricei/](https://ecoquants.com/ricei). [@bestSpatialAnalysisShip2023]
+#### MarineBON: Downscaling AquaMaps, SDM Framework
 
-Tradeoffs overview (@fig-tradeoffs-overview).
+EcoQuants has been working with [MarineBON.org](MarineBON.org) since 2017 and is most recently leading the working group on Biodiversity Indicators. The near-term task for EcoQuants with this community is to downscale [AquaMaps.org](AquaMaps.org) species distributions [@kaschnerAquaMapsPredictedRange2023; @readyPredictingDistributionsMarine2010] from 0.5 decimal degrees to 15 arc seconds (\~55 km to \~0.5 km at the equator), the spatial resolution of the best available global bathymetric dataset [GEBCO.net](https://www.gebco.net/).
 
-![Overview of methods for bringing together wind profitability, seabird sensitivity over space, and cetacean sensitivity over space and time. Source: @bestMinimizingWildlifeImpacts2019.](figures/BestHalpin2019_fig2.png){#fig-tradeoffs-overview}
+This is being accomplished by extracting the environmental preferences ([@fig-aquamaps_blue-whale_env]) found in the [`aquamapsdata`](https://raquamaps.github.io/aquamapsdata/articles/intro.html#species-preferences-or-environmental-envelope-1) R package and applying them to fine scale datasets using Google Earth Engine (GEE). See initial results for the blue whale in the R notebook [aquamaps-downscaled](https://marinebon.github.io/aquamaps-downscaled/) and GEE script [env_bluewhale](https://code.earthengine.google.com/5330ca254eead35ee44eccd5b255d37f). Next, we will develop this into an R function and Shiny app for being able to select any of the \~26,000 species and generate the distributional map from only the environmental preferences for 6 categories of input environmental layers (depth, temperature, salinity, primary productivity, ice concentration, oxygen) and one layer of FAO mask areas.
 
-OHI value sets (@fig-HalpernEtal2012_fig4).
+![Plots of environmental suitability parameters from `aquamapsdata` for an example species of blue whale (*Balaenoptera musculus*).](figures/aquamaps_blue-whale_env.png){#fig-aquamaps_blue-whale_env alt="Plots of environmental suitability parameters from aquamapsdata for an example species of blue whale (Balaenoptera musculus)."}
 
-![Value sets are illustrative rather than prescriptive; labels for the value sets are approximations and should not be interpreted literally. Source: @halpernIndexAssessHealth2012](figures/HalpernEtal2012_fig4.jpg){#fig-HalpernEtal2012_fig4}
+The downscaled AquaMaps app will only generate map layers on the fly using Google Earth Engine (GEE). The download task for each individual species distribution takes 20 to 30 minutes, so we will work on optimizing this task for generating outputs using either: GEE with parallel requests; [Pangeo](https://pangeo.io/packages.html#packages) (using cloud-enabled parallelized multi-dimensional arrays); or [`gdalcubes`](https://gdalcubes.github.io/), which is based on GDAL and R. Once these SDMs are output as individual or multi-band cloud-optimized GeoTIFFs ([COGs](https://www.cogeo.org/)) online, we will reference them publicly as a spatio-temporal asset catalog ([STAC](https://stacspec.org/en)). Then we will demonstrate alternate COGs and STACs that mosaic improved SDMs in space and time.
 
-Human use atlases [@dlorioPacificRegionalOcean2015]
+These improved SDMs will come in the form of existing SDMs by external partners with taxonomic and regional expertise as well as new SDMs we create from [OBIS](https://obis.org/) observational data and common modeling techniques such as [Maxent](https://biodiversityinformatics.amnh.org/open_source/maxent/). These SDMs will then be associated with marine traits, such as extinction risk, endemism, phylogenetic uniqueness, ecosystem function and similar to produce valuable indicators for further scientific exploration and management decision-making, including this proposal.
 
-Mitigation strategies [@industrialeconomicsinc.IdentificationOuterContinental2012]
+### Applying Weights
+
+In order to match species distributions with species traits assignment of common taxonomic identifiers, such as the `aphia_id` from [MarineSpecies.org](https://MarineSpecies.org), is critical. Several APIs exist for accessing species traits, including [MarineSpecies.org/traits](https://marinespecies.org/traits/), [FishBase.org](FishBase.org). For example, summing extinction risk was performed by matching with the [IUCN RedList](http://apiv3.iucnredlist.org/) API (@fig-pixel_er).
+
+```{r}
+#| label: cap_pixel_er
+
+cap_pixel_er <- paste(
+  ifelse(
+    is_html_output(),
+    "Interactive map of extinction risk", 
+    glue(
+      "Screenshot of 
+      [interactive map of extinction risk]({url_idx}#fig-pixel_er)")),
+  "across federal waters for the contiguous United States. (Best _in review_)")
+```
+
+```{r}
+#| label: fig-pixel_er
+#| fig-cap: !expr cap_pixel_er
+
+oh_map_cog_lyr("er_web", "Extinction Risk", con=con) |> 
+  render_widget("pixel_er")
+```
+
+Species sensitivities to offshore wind have been applied to the Mid-Atlantic by Ecoquants [@bestMinimizingWildlifeImpacts2019] to minimize impact on birds in space and cetaceans in time (@fig-tradeoffs-overview).
+
+![Overview of methods for bringing together wind profitability, seabird sensitivity over space, and cetacean sensitivity in time. [@bestMinimizingWildlifeImpacts2019].](figures/BestHalpin2019_fig2.png){#fig-tradeoffs-overview}
+
+Similar species-specific weights are available elsewhere in the US, e.g. for offshore wind on birds [@adamsCollisionDisplacementVulnerability2016; @adamsDataCalculatingPopulation2016; @kelseyCollisionDisplacementVulnerability2018]. Sensitivity to oil & gas offshore industry has also been heavily explored and reviewed for similar species weights [@murawskiImpactsPetroleumPetroleum2021; @murawskiVulnerabilityResilienceLiving2023; @michaelSeabirdVulnerabilityOil2022]. EcoQuants has recent experience proposing an update to a NOAA Biological Opinion related mitigating oil & gas ship traffic on the critically endangered Rice's whale (*Balaenoptera ricei*) in the Gulf of Mexico [[ecoquants.com/ricei](https://ecoquants.com/ricei); @bestSpatialAnalysisShip2023].
+
+Beyond weights applied to individual species, taxonomic groupings, various habitats or intensity of stressors all can have different weights. EcoQuants has experience applying and visualizing the weighted goals for the Ocean Health Index (@fig-HalpernEtal2012_fig4).
+
+![In this "flower" plot the weighted average in the middle can change depending on the weights, which are visualized as the width of each "petal", even though the scores for each goal, depicted as the length of each petal, are the same. Source: @halpernIndexAssessHealth2012](figures/HalpernEtal2012_fig4.jpg){#fig-HalpernEtal2012_fig4}
+
+Identifying conflict with human use has been advanced by applying weights to atlases [@dlorioPacificRegionalOcean2015]. These can be paired with mitigation strategies [@industrialeconomicsinc.IdentificationOuterContinental2012] in output reports.
+
+### Summarize and Compare by Area of Interest
+
+When scoring comparison is key, especially if the value is unitless. When summarizing the previous species richness (@fig-pixel_sp) by zone (@fig-zone_sp), we can readily see the differences between zones.
+
+```{r}
+#| label: cap_zone_sp
+
+cap_zone_sp <- paste(
+  ifelse(
+    is_html_output(),
+    "Interactive map of average species richness by zone", 
+    glue(
+      "Screenshot of 
+      [interactive map of average species richness by zone]({url_idx}#fig-pixel_sp)")),
+  "across federal waters for the contiguous United States. (Best _in review_)")
+```
+
+```{r}
+#| label: fig-zone_sp
+#| fig-cap: !expr cap_zone_sp
+
+oh_map() |> 
+  oh_add_ply(
+    ply     = f_z,
+    fld_val = "sp_web",
+    fld_id  = zone_name,
+    str_val = "# Species",
+    str_id  = "Zone") |> 
+  render_widget("zone_sp")
+```
+
+To drill down further within a given zone, we can calculate the standard deviation from the mean in an example zone (@fig-blocks-wgm), hence depicting relatively high and low values intra-zone. Blocks are the smallest units that were aggregated up from the pixel [@bestOffshoreHabitatAssessmentinreview].
+
+```{r}
+#| label: cap_blocks_wgm
+
+cap_blocks_wgm <- paste(
+  ifelse(
+    is_html_output(),
+    "Interactive map of Western Gulf of Mexico zone", 
+    glue(
+      "Screenshot of 
+      [interactive map of Western Gulf of Mexico zone]({url_idx}#fig-zone-blocks-wgm)")),
+  "showing deviation from the score average within the zone. Blocks are outlined in black and scores visible on hover. (Best _in review_)")
+```
+
+```{r}
+#| label: fig-blocks-wgm
+#| fig-cap: !expr cap_blocks_wgm
+
+oh_map_zone_score_dev(
+  "wgm", stk_web_tif = stack_web_tif) |> 
+  render_widget("blocks-wgm")
+```
 
 ## Interactive Applications
 
-Propose to borrow from the suite of applications...
+The following applications were all built with the application framework Shiny based in the R scientific programming language. They demonstrate EcoQuants' capabilities relevant to this proposal and open-source ethos -- links to all source code are provided.
 
-### Ocean Health Index
+### CalCOFI.io
 
-The Ocean Health Index uses a framework of 10 broad goals with status, pressures, trend and status. The flower plot visualizes the score of each goal as its extent, and the weighted value to the overall score as the petal width. (@fig-app_OHI)
+The oceanographic app (@fig-app_CalCOFI-oceano) interpolates values into a contour map for desired times, areas, and depths. Areas can be selected from existing areas or custom drawn on the map. Visualizations are also available as functions in the new R library [`calcofi4r`](https://calcofi.io/calcofi4r/articles/calcofi4r.html).
 
-![Screenshot of [Ocean Health Index application](https://ecoquants.shinyapps.io/ohi-global) ([source code](https://github.com/bbest/ohi-global/tree/app)) showing scores on hover with flower plot from equally weighted goals (See @fig-HalpernEtal2012_fig4).](figures/app_OHI.png){#fig-app_OHI}
+![Screenshot of [CalCOFI oceanographic application](https://shiny.calcofi.io/oceano) ([source code](https://github.com/CalCOFI/apps/tree/main/oceano)) showing ability to generate contours on the fly as well as select existing or custom areas of interest over which to summarize in space, time or depth.](figures/app_CalCOFI-oceano.png){#fig-app_CalCOFI-oceano alt="Screenshot of CalCOFI oceanographic application (source code) showing ability to generate contours on the fly as well as select existing or custom areas of interest over which to summarize in space, time or depth."}
+
+### MarineEnergy.app
+
+Select tags (technology, stressor, and/or receptor), draw location and generate a report (@fig-app_MarineEnergy)
+
+This novel marine energy application [@barrNovelMarineEnergy2022a] uses a Google login (any email works) to save reports, which are rendered via an API. The Shiny app simply parameterizes the request. Spatial querying on receptor datasets originating from [MarineCadastre.gov](MarineCadastre.gov) is performed when a custom Area is drawn.
+
+![Screenshot of [Marine Energy application](https://marineenergy.app) ([source code](https://github.com/marineenergy/apps/tree/master/report-v2)). The reporting application has an expandable sidebar for inputting a set of Tags as Interactions and a Location as a polygon. The top menu allows the user to navigate across content types. Here the Projects display a map and timeline of marine energy projects. Once the user submits the Add button on the Tags, the Projects map and timeline will reduce to just the Wave technology. Each of the content types filters on different tags, which are color coded. The Reports section enables users to save their reports (after logging in with a Google account) and share the online link with others. [@barrNovelMarineEnergy2022a]](figures/app_MarineEnergy.jpg){#fig-app_MarineEnergy alt="Screenshot of Marine Energy application (source code). The reporting application has an expandable sidebar for inputting a set of Tags as Interactions and a Location as a polygon. The top menu allows the user to navigate across content types. Here the Projects display a map and timeline of marine energy projects. Once the user submits the Add button on the Tags, the Projects map and timeline will reduce to just the Wave technology. Each of the content types filters on different tags, which are color coded. The Reports section enables users to save their reports (after logging in with a Google account) and share the online link with others. [@barrNovelMarineEnergy2022a]"}
 
 ### NREL Uses
 
 Assign weights to human uses, species distributions and habitats. Sum them up to determine most sensitive areas. (@fig-app_NREL-uses)
 
-![Screenshot of [NREL Uses application](https://ecoquants.shinyapps.io/nrel-uses) ([source code](https://github.com/ecoquants/nrel-uses)) showing sliders to apply constraints.](figures/app_NREL-uses.png){#fig-app_NREL-uses}
+![Screenshot of [NREL Uses application](https://ecoquants.shinyapps.io/nrel-uses) ([source code](https://github.com/ecoquants/nrel-uses)) showing sliders to apply constraints.](figures/app_NREL-uses.png){#fig-app_NREL-uses alt="Screenshot of NREL Uses application (source code) showing sliders to apply constraints."}
+
+### Ocean Health Index
+
+The Ocean Health Index uses a framework of 10 broad goals with status, pressures, trend and status. The flower plot (@fig-HalpernEtal2012_fig4) visualizes the score of each goal as its extent, and the weighted value to the overall score as the petal width. The interactive application (@fig-app_OHI) shows different values on hover.
+
+![Screenshot of [Ocean Health Index application](https://ecoquants.shinyapps.io/ohi-global) ([source code](https://github.com/bbest/ohi-global/tree/app)) showing scores on hover with flower plot from equally weighted goals (See @fig-HalpernEtal2012_fig4).](figures/app_OHI.png){#fig-app_OHI}
 
 ### Tradeoffs
 
@@ -321,107 +370,27 @@ A tradeoff plot can visualizes two objectives at once. Selecting win-win areas i
 
 ![Screenshot of [Tradeoffs application](https://shiny.ecoquants.com/siting) ([source code](https://github.com/bbest/siting)) showing the ability to lasso pixels in tradeoff space to show up on the map and clicking on a given pixel to identify month of year to minimally impact marine mammals.](figures/app_siting.png){#fig-app_siting}
 
-Novel marine energy application [@barrNovelMarineEnergy2022a].
-
-### MarineEnergy.app
-
-Select tags (technology, stressor, and/or receptor), draw location and generate a report (@fig-app_MarineEnergy).
-
--   Use OAuth2 to login via Google, Microsoft, Facebook, etc.
-
--   Mitigation strategies
-
--   Generate a report using API.
-
--   
-
-![Screenshot of [Marine Energy application](https://marineenergy.app) ([source code](https://github.com/marineenergy/apps/tree/master/report-v2)) Figure 2. The reporting application has an expandable sidebar for inputting a set of Tags as Interactions and a Location as a polygon. The top menu allows the user to navigate across content types. Here the Projects display a map and timeline of marine energy projects. Once the user submits the Add button on the Tags, the Projects map and timeline will reduce to just the Wave technology. Each of the content types filters on different tags, which are color coded. The Reports section enables users to save their reports (after logging in with a Google account) and share the online link with others. Source: @barrNovelMarineEnergy2022a](figures/app_MarineEnergy.jpg){#fig-app_MarineEnergy}
-
-Draw custom areas and generate outputs (@fig-app_CalCOFI-oceano).
-
-![Screenshot of [CalCOFI oceanographic application](https://shiny.calcofi.io/oceano) ([source code](https://github.com/CalCOFI/apps/tree/main/oceano)) showing ability to generate contours on the fly as well as select existing or custom areas of interest over which to summarize in space, time or depth.](figures/app_CalCOFI-oceano.png){#fig-app_CalCOFI-oceano}
-
 ## Infographics
 
-Visualize the ecosystem with icons clickable to popup windows with data and details.
-
-Infographics [@spectorWebenizingConditionReports2021] (@fig-info_Cstories) have been used on [SanctuaryWatch](https://sanctuarywatch.ioos.us) and the NOAA Integrated Ecosystem Assesment (e.g., for the [California Ecosystem Status Report](https://www.integratedecosystemassessment.noaa.gov/regions/california-current/highlights-2022-23-california-ecosystem-status-report)).
-
--   Github real-time.
--   SanctSound
+Visualize the ecosystem with icons clickable to popup windows with data and details. Infographics [@spectorWebenizingConditionReports2021] (@fig-info_Cstories) have been used on [SanctuaryWatch](https://sanctuarywatch.ioos.us) and the NOAA Integrated Ecosystem Assesment (e.g., for the [California Ecosystem Status Report](https://www.integratedecosystemassessment.noaa.gov/regions/california-current/highlights-2022-23-california-ecosystem-status-report)).
 
 ![Screenshot of [interactive infographic](https://cstories.integral-corp.com/beta/infographics/whales.html) informing on whale interactions with offshore wind energy, built using the [infographiq](https://marinebon.github.io/infographiq/) JavaScript library. Clicking on elements in the scene or contents on the right opens a window with multimedia content describing in detail.](figures/info_CStories-whales.png){#fig-info_Cstories}
 
-## Software Components
+## Project Management
 
-### Folders & Repositories
+### Key Personnel & Project Manager
 
--   folders on a share drive
-    -   data
-    -   documents
--   bibliography
-    -   Zotero
--   Github repositories
-    -   1 GB limit
-    -   Github Pages for sharing like this proposal
+**Benjamin D. Best, PhD**, is for EcoQuants LLC, the current project manager, environmental data scientist, CEO and the only full-time employee. All of the products mentioned in association with EcoQuants in this Technical Quotation are his work. His CV is attached and [online](https://bbest.github.io/cv).
 
-### Server Software
+In the past EcoQuants has hired subcontractors to handle extra workload. Now that EcoQuants is an LLC and an S-Corporation, bringing on another full-time hire is much easier bureaucratically. Given graduate university connections teaching at Duke (Nicholas School of the Environment) and UC Santa Barbara (Bren School of Env. Sci. & Mgmt.; Masters in Environmental Data Science), a steady crop of capable graduates could be available for a position opening.
 
--   Docker
+### Github Approach
 
--   Database
-
-    -   Postgres + PostGIS
-
-### Application Programming Interfaces
-
--   Custom
-
-    -   R Plumber
-
--   PostgREST
-
--   Examples
-
-    -   [api.marineenergy.app](http://api.marineenergy.app)
-
-    -   [api.calcofi.io](https://api.calcofi.io)
-
-### R Library
-
--   R library [`offhabr`](https://offshorewindhabitat.info/offhabr/reference/index.html)
-
--   R library [`calcofi4r`](https://calcofi.io/calcofi4r/) with vignette.
-
--   Overall catalog of open-source products with links to source code repositories and live product at [CalCOFI.io](https://calcofi.io).
-
--   Categories
-
-    -   Read
-
-    -   Analyze
-
-    -   Visualize
+EcoQuants has long taken advantage of [project management tools in Github](https://github.com/features/issues), and even taught a graduate class on it: [EDS 211: Team Science, Collaborative Analysis and Project Management](https://bbest.github.io/eds211-team/). This equates to extensive use of issues, task lists, mentions, projects and the new [Project Roadmap](https://github.blog/changelog/2023-03-23-roadmaps-in-projects-are-now-generally-available/).
 
 ## Reproducible Results
 
-This proposal was produced using the principles of reproducible research [@lowndesOurPathBetter2017] with the R programming language [@rcoreteamLanguageEnvironmentStatistical2023].
-
-All source code for this proposal can be found at [github.com/ecoquants/boem-esi](https://github.com/ecoquants/boem-esi).
-
-Statistical analysis will be performed using the libraries and methods of the [`tidyverse`](https://www.tidyverse.org/) [@wickhamWelcomeTidyverse2019] and spatial features [`sf`](https://r-spatial.github.io/sf/index.html) [@pebesmaJournalSimpleFeatures2018] output to a [Quarto](https://quarto.org/) document [@allaireQuartoInterfaceQuarto2022]. All source code is available in the Github repository [github.com/ecoquants/ricei](https://github.com/ecoquants/ricei). The interactive version of this report is available at [ecoquants.com/ricei](https://ecoquants.com/ricei).
-
-## Project Management
-
--   Github Project
--   Personell: Ben
--   Project Manager
-
-### Draft Milestones
-
--   spin up server environment
-    -   docker: rstu
--   
+This Technical Quotation was produced using the principles of reproducible research [@lowndesOurPathBetter2017] with the R programming language [@rcoreteamLanguageEnvironmentStatistical2023]. All source code for this proposal can be found at [github.com/ecoquants/boem-esi](https://github.com/ecoquants/boem-esi).
 
 ## References
 
