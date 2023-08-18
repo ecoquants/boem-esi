@@ -122,7 +122,7 @@ Species and habitat distributions for the US vary in the spatial resolution, spa
 
 ```{r}
 #| label: tbl-datasets
-#| tbl-cap: Summary of datasets used for species and habitats (Best _in review_).
+#| tbl-cap: Summary of datasets used for species and habitats (Best in review).
 
 d_ds <- tbl(con, "datasets") |> 
   filter(
@@ -213,7 +213,7 @@ cap_pixel_sp <- paste(
     glue(
       "Screenshot of 
       [interactive map of species richness by pixel]({url_idx}#fig-pixel_sp)")),
-  "across federal waters for the contiguous United States. (Best _in review_)")
+  "across federal waters for the contiguous United States [@bestOffshoreHabitatAssessmentinreview].")
 ```
 
 ```{r}
@@ -232,7 +232,14 @@ EcoQuants has been working with [MarineBON.org](MarineBON.org) since 2017 and is
 
 This is being accomplished by extracting the environmental preferences ([@fig-aquamaps_blue-whale_env]) found in the [`aquamapsdata`](https://raquamaps.github.io/aquamapsdata/articles/intro.html#species-preferences-or-environmental-envelope-1) R package and applying them to fine scale datasets using Google Earth Engine (GEE). See initial results for the blue whale in the R notebook [aquamaps-downscaled](https://marinebon.github.io/aquamaps-downscaled/) and GEE script [env_bluewhale](https://code.earthengine.google.com/5330ca254eead35ee44eccd5b255d37f). Next, we will develop this into an R function and Shiny app for being able to select any of the \~26,000 species and generate the distributional map from only the environmental preferences for 6 categories of input environmental layers (depth, temperature, salinity, primary productivity, ice concentration, oxygen) and one layer of FAO mask areas.
 
-![Plots of environmental suitability parameters from `aquamapsdata` for an example species of blue whale (*Balaenoptera musculus*).](figures/aquamaps_blue-whale_env.png){#fig-aquamaps_blue-whale_env alt="Plots of environmental suitability parameters from aquamapsdata for an example species of blue whale (Balaenoptera musculus)."}
+::: {#fig-aquamaps_blue-whale_env}
+
+![](./figures/aquamaps_blue-whale_env.png)
+
+Plots of environmental suitability parameters from `aquamapsdata` for an example species of blue whale (*Balaenoptera musculus*).
+
+:::
+
 
 The downscaled AquaMaps app will only generate map layers on the fly using Google Earth Engine (GEE). The download task for each individual species distribution takes 20 to 30 minutes, so we will work on optimizing this task for generating outputs using either: GEE with parallel requests; [Pangeo](https://pangeo.io/packages.html#packages) (using cloud-enabled parallelized multi-dimensional arrays); or [`gdalcubes`](https://gdalcubes.github.io/), which is based on GDAL and R. Once these SDMs are output as individual or multi-band cloud-optimized GeoTIFFs ([COGs](https://www.cogeo.org/)) online, we will reference them publicly as a spatio-temporal asset catalog ([STAC](https://stacspec.org/en)). Then we will demonstrate alternate COGs and STACs that mosaic improved SDMs in space and time.
 
@@ -252,7 +259,7 @@ cap_pixel_er <- paste(
     glue(
       "Screenshot of 
       [interactive map of extinction risk]({url_idx}#fig-pixel_er)")),
-  "across federal waters for the contiguous United States. (Best _in review_)")
+  "across federal waters for the contiguous United States [@bestOffshoreHabitatAssessmentinreview].")
 ```
 
 ```{r}
@@ -265,13 +272,26 @@ oh_map_cog_lyr("er_web", "Extinction Risk", con=con) |>
 
 Species sensitivities to offshore wind have been applied to the Mid-Atlantic by Ecoquants [@bestMinimizingWildlifeImpacts2019] to minimize impact on birds in space and cetaceans in time (@fig-tradeoffs-overview).
 
-![Overview of methods for bringing together wind profitability, seabird sensitivity over space, and cetacean sensitivity in time. [@bestMinimizingWildlifeImpacts2019].](figures/BestHalpin2019_fig2.png){#fig-tradeoffs-overview}
+::: {#fig-tradeoffs-overview}
+
+![](./figures/BestHalpin2019_fig2.png)
+
+Overview of methods for bringing together wind profitability, seabird sensitivity over space, and cetacean sensitivity in time  [@bestMinimizingWildlifeImpacts2019].
+
+:::
 
 Similar species-specific weights are available elsewhere in the US, e.g. for offshore wind on birds [@adamsCollisionDisplacementVulnerability2016; @adamsDataCalculatingPopulation2016; @kelseyCollisionDisplacementVulnerability2018]. Sensitivity to oil & gas offshore industry has also been heavily explored and reviewed for similar species weights [@murawskiImpactsPetroleumPetroleum2021; @murawskiVulnerabilityResilienceLiving2023; @michaelSeabirdVulnerabilityOil2022]. EcoQuants has recent experience proposing an update to a NOAA Biological Opinion related mitigating oil & gas ship traffic on the critically endangered Rice's whale (*Balaenoptera ricei*) in the Gulf of Mexico [[ecoquants.com/ricei](https://ecoquants.com/ricei); @bestSpatialAnalysisShip2023].
 
 Beyond weights applied to individual species, taxonomic groupings, various habitats or intensity of stressors all can have different weights. EcoQuants has experience applying and visualizing the weighted goals for the Ocean Health Index (@fig-HalpernEtal2012_fig4).
 
-![In this "flower" plot the weighted average in the middle can change depending on the weights, which are visualized as the width of each "petal", even though the scores for each goal, depicted as the length of each petal, are the same. Source: @halpernIndexAssessHealth2012](figures/HalpernEtal2012_fig4.jpg){#fig-HalpernEtal2012_fig4}
+
+::: {#fig-HalpernEtal2012_fig4}
+
+![](./figures/HalpernEtal2012_fig4.jpg)
+
+In this "flower" plot the weighted average in the middle can change depending on the weights, which are visualized as the width of each "petal", even though the scores for each goal, depicted as the length of each petal, are the same [@halpernIndexAssessHealth2012].
+
+:::
 
 Identifying conflict with human use has been advanced by applying weights to atlases [@dlorioPacificRegionalOcean2015]. These can be paired with mitigation strategies [@industrialeconomicsinc.IdentificationOuterContinental2012] in output reports.
 
@@ -289,7 +309,7 @@ cap_zone_sp <- paste(
     glue(
       "Screenshot of 
       [interactive map of average species richness by zone]({url_idx}#fig-pixel_sp)")),
-  "across federal waters for the contiguous United States. (Best _in review_)")
+  "across federal waters for the contiguous United States. [@bestOffshoreHabitatAssessmentinreview]")
 ```
 
 ```{r}
@@ -318,7 +338,7 @@ cap_blocks_wgm <- paste(
     glue(
       "Screenshot of 
       [interactive map of Western Gulf of Mexico zone]({url_idx}#fig-zone-blocks-wgm)")),
-  "showing deviation from the score average within the zone. Blocks are outlined in black and scores visible on hover. (Best _in review_)")
+  "showing deviation from the score average within the zone. Blocks are outlined in black and scores visible on hover [@bestOffshoreHabitatAssessmentinreview].")
 ```
 
 ```{r}
@@ -338,7 +358,14 @@ The following applications were all built with the application framework Shiny b
 
 The oceanographic app (@fig-app_CalCOFI-oceano) interpolates values into a contour map for desired times, areas, and depths. Areas can be selected from existing areas or custom drawn on the map. Visualizations are also available as functions in the new R library [`calcofi4r`](https://calcofi.io/calcofi4r/articles/calcofi4r.html).
 
-![Screenshot of [CalCOFI oceanographic application](https://shiny.calcofi.io/oceano) ([source code](https://github.com/CalCOFI/apps/tree/main/oceano)) showing ability to generate contours on the fly as well as select existing or custom areas of interest over which to summarize in space, time or depth.](figures/app_CalCOFI-oceano.png){#fig-app_CalCOFI-oceano alt="Screenshot of CalCOFI oceanographic application (source code) showing ability to generate contours on the fly as well as select existing or custom areas of interest over which to summarize in space, time or depth."}
+::: {#fig-app_CalCOFI-oceano}
+
+![](./figures/app_CalCOFI-oceano.png)
+
+Screenshot of [CalCOFI oceanographic application](https://shiny.calcofi.io/oceano) ([source code](https://github.com/CalCOFI/apps/tree/main/oceano)) showing ability to generate contours on the fly as well as select existing or custom areas of interest over which to summarize in space, time or depth.
+
+:::
+
 
 ### MarineEnergy.app
 
@@ -346,31 +373,63 @@ Select tags (technology, stressor, and/or receptor), draw location and generate 
 
 This novel marine energy application [@barrNovelMarineEnergy2022a] uses a Google login (any email works) to save reports, which are rendered via an API. The Shiny app simply parameterizes the request. Spatial querying on receptor datasets originating from [MarineCadastre.gov](MarineCadastre.gov) is performed when a custom Area is drawn.
 
-![Screenshot of [Marine Energy application](https://marineenergy.app) ([source code](https://github.com/marineenergy/apps/tree/master/report-v2)). The reporting application has an expandable sidebar for inputting a set of Tags as Interactions and a Location as a polygon. The top menu allows the user to navigate across content types. Here the Projects display a map and timeline of marine energy projects. Once the user submits the Add button on the Tags, the Projects map and timeline will reduce to just the Wave technology. Each of the content types filters on different tags, which are color coded. The Reports section enables users to save their reports (after logging in with a Google account) and share the online link with others. [@barrNovelMarineEnergy2022a]](figures/app_MarineEnergy.jpg){#fig-app_MarineEnergy alt="Screenshot of Marine Energy application (source code). The reporting application has an expandable sidebar for inputting a set of Tags as Interactions and a Location as a polygon. The top menu allows the user to navigate across content types. Here the Projects display a map and timeline of marine energy projects. Once the user submits the Add button on the Tags, the Projects map and timeline will reduce to just the Wave technology. Each of the content types filters on different tags, which are color coded. The Reports section enables users to save their reports (after logging in with a Google account) and share the online link with others. [@barrNovelMarineEnergy2022a]"}
+
+::: {#fig-app_MarineEnergy}
+
+![](./figures/app_MarineEnergy.jpg)
+
+Screenshot of [Marine Energy application](https://marineenergy.app) ([source code](https://github.com/marineenergy/apps/tree/master/report-v2)). The reporting application has an expandable sidebar for inputting a set of Tags as Interactions and a Location as a polygon. The top menu allows the user to navigate across content types. Here the Projects display a map and timeline of marine energy projects. Once the user submits the Add button on the Tags, the Projects map and timeline will reduce to just the Wave technology. Each of the content types filters on different tags, which are color coded. The Reports section enables users to save their reports (after logging in with a Google account) and share the online link with others [@barrNovelMarineEnergy2022a].
+
+:::
 
 ### NREL Uses
 
 Assign weights to human uses, species distributions and habitats. Sum them up to determine most sensitive areas. (@fig-app_NREL-uses)
 
-![Screenshot of [NREL Uses application](https://ecoquants.shinyapps.io/nrel-uses) ([source code](https://github.com/ecoquants/nrel-uses)) showing sliders to apply constraints.](figures/app_NREL-uses.png){#fig-app_NREL-uses alt="Screenshot of NREL Uses application (source code) showing sliders to apply constraints."}
+::: {#fig-app_NREL-uses}
+
+![](./figures/app_NREL-uses.png)
+
+Screenshot of [NREL Uses application](https://ecoquants.shinyapps.io/nrel-uses) ([source code](https://github.com/ecoquants/nrel-uses)) showing sliders to apply constraints.
+
+:::
 
 ### Ocean Health Index
 
 The Ocean Health Index uses a framework of 10 broad goals with status, pressures, trend and status. The flower plot (@fig-HalpernEtal2012_fig4) visualizes the score of each goal as its extent, and the weighted value to the overall score as the petal width. The interactive application (@fig-app_OHI) shows different values on hover.
 
-![Screenshot of [Ocean Health Index application](https://ecoquants.shinyapps.io/ohi-global) ([source code](https://github.com/bbest/ohi-global/tree/app)) showing scores on hover with flower plot from equally weighted goals (See @fig-HalpernEtal2012_fig4).](figures/app_OHI.png){#fig-app_OHI}
+::: {#fig-app_OHI}
+
+![](./figures/app_OHI.png)
+
+Screenshot of [Ocean Health Index application](https://ecoquants.shinyapps.io/ohi-global) ([source code](https://github.com/bbest/ohi-global/tree/app)) showing scores on hover with flower plot from equally weighted goals (See @fig-HalpernEtal2012_fig4).
+
+:::
 
 ### Tradeoffs
 
 A tradeoff plot can visualizes two objectives at once. Selecting win-win areas in the plot, such as high wind and low seabird sensitivity, highlights those places on the map. (@fig-app_siting)
 
-![Screenshot of [Tradeoffs application](https://shiny.ecoquants.com/siting) ([source code](https://github.com/bbest/siting)) showing the ability to lasso pixels in tradeoff space to show up on the map and clicking on a given pixel to identify month of year to minimally impact marine mammals.](figures/app_siting.png){#fig-app_siting}
+::: {#fig-app_siting}
+
+![](./figures/app_siting.png)
+
+Screenshot of [Tradeoffs application](https://shiny.ecoquants.com/siting) ([source code](https://github.com/bbest/siting)) showing the ability to lasso pixels in tradeoff space to show up on the map and clicking on a given pixel to identify month of year to minimally impact marine mammals.
+
+:::
+  
 
 ## Infographics
 
 Visualize the ecosystem with icons clickable to popup windows with data and details. Infographics [@spectorWebenizingConditionReports2021] (@fig-info_Cstories) have been used on [SanctuaryWatch](https://sanctuarywatch.ioos.us) and the NOAA Integrated Ecosystem Assesment (e.g., for the [California Ecosystem Status Report](https://www.integratedecosystemassessment.noaa.gov/regions/california-current/highlights-2022-23-california-ecosystem-status-report)).
 
-![Screenshot of [interactive infographic](https://cstories.integral-corp.com/beta/infographics/whales.html) informing on whale interactions with offshore wind energy, built using the [infographiq](https://marinebon.github.io/infographiq/) JavaScript library. Clicking on elements in the scene or contents on the right opens a window with multimedia content describing in detail.](figures/info_CStories-whales.png){#fig-info_Cstories}
+::: {#fig-info_Cstories}
+
+![](./figures/info_CStories-whales.png)
+
+Screenshot of [interactive infographic](https://cstories.integral-corp.com/beta/infographics/whales.html) ( [source code](https://github.com/cstories-app/beta/blob/main/infographics/whales.qmd)) informing on whale interactions with offshore wind energy, built using the [infographiq](https://marinebon.github.io/infographiq/) JavaScript library. Clicking on elements in the scene or contents on the right opens a window with multimedia content describing in detail.
+
+:::
 
 ## Project Management
 
